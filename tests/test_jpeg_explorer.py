@@ -17,11 +17,26 @@ from jpeg_explorer import (  # noqa: E402
     DEFAULT_IMAGE, DCT_MODES, DCT_DESCRIPTIONS, JPEGExplorer,
     approximate_dequantized_coefficients, approximate_quantized_coefficients,
     block_dct, center_block, channel_statistics, chroma_group_map, dct_basis, get_block,
-    histogram_entropy, jpeg_roundtrip, load_rgb, rgb_to_ycbcr,
+    histogram_entropy, jpeg_roundtrip, load_rgb, rgb_to_ycbcr, scroll_viewport_size,
 )
 
 
 class ModelTests(unittest.TestCase):
+    def test_scroll_viewport_keeps_natural_size_on_large_screens(self):
+        self.assertEqual(scroll_viewport_size(1780, 1500, 3000, 2400),
+                         (1814, 1600))
+
+    def test_scroll_viewport_fits_small_screen_in_both_directions(self):
+        width, height = scroll_viewport_size(1780, 1500, 1024, 768)
+        self.assertLess(width, 1024)
+        self.assertLess(height, 768)
+        self.assertLess(width, 1780)
+        self.assertLess(height, 1500)
+
+    def test_scroll_viewport_rejects_invalid_dimensions(self):
+        with self.assertRaises(ValueError):
+            scroll_viewport_size(0, 1200, 1024, 768)
+
     def test_dct_is_orthonormal(self):
         for n in (2, 4, 8, 16):
             t = dct_basis(n)

@@ -365,7 +365,7 @@ class JPEGExplorer:
         self.original_im = self.ax_original.imshow(self.original, interpolation="nearest")
         self.jpeg_im = self.ax_jpeg.imshow(self.decoded, interpolation="nearest")
         for ax, title in ((self.ax_original, "Original"), (self.ax_jpeg, "JPEG (decoded)")):
-            ax.set_title(title, fontsize=13, weight="semibold", pad=7)
+            ax.set_title(title, fontsize=13, weight="bold", pad=7)
             ax.set_xticks([])
             ax.set_yticks([])
             for spine in ax.spines.values():
@@ -467,7 +467,7 @@ class JPEGExplorer:
             spine.set_linewidth(1.6)
         self.help_ax.text(
             0.04, 0.975, "JPEG EXPLORER — HELP", transform=self.help_ax.transAxes,
-            va="top", ha="left", fontsize=14, fontweight="semibold", color="#0f172a"
+            va="top", ha="left", fontsize=14, fontweight="bold", color="#0f172a"
         )
         help_text = (
             "Click either full image to select an analysis block.\n"
@@ -560,7 +560,8 @@ class JPEGExplorer:
         # Place the DCT selector between the two enlarged blocks, not over them.
         zoom_box = self.ax_zoom_jpeg.get_position()
         self.figure.text(0.5, zoom_box.y0 + 0.121, "Coefficient display",
-                         ha="center", va="center", fontsize=11, color="#334155")
+                         ha="center", va="center", weight="bold", fontsize=11,
+                         color="#334155")
         self.ax_dct_mode = self.figure.add_axes([
             0.398, zoom_box.y0 + 0.075, 0.204, 0.033
         ])
@@ -763,7 +764,7 @@ class JPEGExplorer:
             artist.set_extent((-0.5, n - 0.5, n - 0.5, -0.5))
             ax.set_xlim(-0.5, n - 0.5)
             ax.set_ylim(n - 0.5, -0.5)
-            ax.set_title(f"{label}  •  {n}×{n} pixel block", fontsize=11, pad=6)
+            ax.set_title(f"{label}  •  {n}×{n} pixel block", weight="bold", fontsize=11, pad=6)
             # Draw explicit pixel cell boundaries at every analysis resolution.
             ax.set_xticks(np.arange(-0.5, n, 1), minor=True)
             ax.set_yticks(np.arange(-0.5, n, 1), minor=True)
@@ -865,7 +866,7 @@ class JPEGExplorer:
         unique_groups = int(np.unique(groups).size)
         self.ax_sampling_vis.set_title(
             f"8×8 Chroma sampling  •  {self.state.sampling}",
-            fontsize=10.2, pad=7, fontweight="semibold"
+            fontsize=10.2, pad=7, fontweight="bold"
         )
         self.ax_sampling_vis.set_xticks(np.arange(-0.5, 8, 1), minor=True)
         self.ax_sampling_vis.set_yticks(np.arange(-0.5, 8, 1), minor=True)
@@ -926,7 +927,7 @@ class JPEGExplorer:
         image.set_data(shading)
         ax.set_xlim(-0.5, 7.5)
         ax.set_ylim(7.5, -0.5)
-        ax.set_title(title, fontsize=11, pad=7, fontweight="semibold")
+        ax.set_title(title, fontsize=11, pad=7, fontweight="bold")
         ax.set_xticks(np.arange(-0.5, 8, 1), minor=True)
         ax.set_yticks(np.arange(-0.5, 8, 1), minor=True)
         ax.grid(which="minor", color="#64748b", alpha=0.43, linewidth=0.55)
@@ -952,7 +953,7 @@ class JPEGExplorer:
         image.set_clim(0, maximum)
         ax.set_xlim(-0.5, n - 0.5)
         ax.set_ylim(n - 0.5, -0.5)
-        ax.set_title(title, fontsize=11, pad=7, fontweight="semibold")
+        ax.set_title(title, fontsize=11, pad=7, fontweight="bold")
         ax.set_xticks(np.arange(-0.5, n, 1), minor=True)
         ax.set_yticks(np.arange(-0.5, n, 1), minor=True)
         ax.grid(which="minor", color="#64748b", alpha=0.40, linewidth=0.55)
@@ -978,6 +979,96 @@ class JPEGExplorer:
         plt.show()
 
 
+def scroll_viewport_size(canvas_width: int, canvas_height: int,
+                         available_width: int, available_height: int) -> tuple[int, int]:
+    """Fit the window to the available display without forcing either scrollbar.
+
+    Use the canvas's natural size (plus a small allowance for window chrome
+    and Matplotlib's navigation toolbar) whenever the screen has room.  On
+    smaller screens, cap the initial window size to the usable screen area.
+    QScrollArea itself determines whether the figure overflows its viewport.
+    """
+    if min(canvas_width, canvas_height, available_width, available_height) <= 0:
+        raise ValueError("Canvas and screen dimensions must be positive")
+    desired_width = canvas_width + 24   # thin window borders, no artificial clipping
+    desired_height = canvas_height + 96  # toolbar and window decoration
+    max_width = max(1, int(available_width * 0.92))
+    max_height = max(1, int(available_height * 0.90))
+    return min(desired_width, max_width), min(desired_height, max_height)
+
+
+def install_scrollable_viewport(figure) -> object:
+    """Place a fixed-resolution QtAgg figure in a two-axis QScrollArea.
+
+    Qt widgets stay inside the original Matplotlib canvas, so all Matplotlib
+    button, slider, mouse-click, and keyboard callbacks remain connected.
+    The standard navigation toolbar stays on the window, outside the scroll
+    area. Scrollbar movement is strictly a viewport pan, not a figure resize.
+    """
+    from matplotlib.backends.qt_compat import QtCore, QtWidgets
+
+    manager = figure.canvas.manager
+    window, canvas = manager.window, figure.canvas
+    scroll = QtWidgets.QScrollArea(window)
+    scroll.setWidgetResizable(False)
+    scroll.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft |
+                        QtCore.Qt.AlignmentFlag.AlignTop)
+    # Let Qt show either scrollbar only when its content exceeds the viewport.
+    # With widgetResizable=False and a fixed-size canvas below, shrinking the
+    # window does not compress or reflow the Matplotlib figure.
+    scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+    scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+    # QtAgg canvases have a sizeHint corresponding to the natural figure size.
+    # Fix this size so reducing the main-window dimensions does not compress
+    # the image or alter the spatial relationship of Matplotlib controls.
+    natural_size = canvas.sizeHint()
+    canvas.setFixedSize(natural_size)
+    scroll.setWidget(canvas)     # Reparent BEFORE replacing the central widget.
+    window.setCentralWidget(scroll)
+
+    # Matplotlib normally consumes wheel events for scroll_event callbacks.
+    # Here those events should instead move the viewport (Shift = horizontal).
+    class _CanvasWheelScroller(QtCore.QObject):
+        def eventFilter(self, obj, event):
+            if obj is canvas and event.type() == QtCore.QEvent.Type.Wheel:
+                delta = event.pixelDelta()
+                is_angle = delta.isNull()
+                if is_angle:
+                    delta = event.angleDelta()
+                dx, dy = delta.x(), delta.y()
+                shift = bool(event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier)
+                # Shift+vertical wheel OR a native horizontal trackpad gesture
+                # controls the horizontal bar. Ordinary wheel events go down.
+                horizontal = shift or (abs(dx) > abs(dy))
+                amount = (dx if dx else dy) if horizontal else (dy if dy else dx)
+                movement = -int(round(amount / 120 * 48)) if is_angle else -int(amount)
+                bar = scroll.horizontalScrollBar() if horizontal else scroll.verticalScrollBar()
+                bar.setValue(bar.value() + movement)
+                return True
+            return super().eventFilter(obj, event)
+
+    wheel_filter = _CanvasWheelScroller(scroll)
+    canvas.installEventFilter(wheel_filter)
+    # Retain references for as long as the figure exists, avoiding Qt object
+    # deletion from Python garbage collection while the window is open.
+    manager._jpeg_scroll_area = scroll
+    manager._jpeg_wheel_filter = wheel_filter
+
+    app = QtWidgets.QApplication.instance()
+    screen = window.screen() or (app.primaryScreen() if app else None)
+    if screen is not None:
+        geometry = screen.availableGeometry()
+        vw, vh = scroll_viewport_size(natural_size.width(), natural_size.height(),
+                                      geometry.width(), geometry.height())
+        window.resize(vw, vh)
+    scroll.horizontalScrollBar().setValue(0)
+    scroll.verticalScrollBar().setValue(0)
+    canvas.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+    canvas.setFocus()
+    return scroll
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", type=Path, default=DEFAULT_IMAGE,
@@ -991,7 +1082,16 @@ def main() -> None:
         parser.error("--quality must be between 1 and 100")
     if not args.image.is_file():
         parser.error(f"image not found: {args.image}")
+    # Select an interactive Qt window only when launching the desktop app.
+    # Importing this module in headless tests still uses their Agg backend.
+    try:
+        plt.switch_backend("QtAgg")
+    except ImportError as exc:
+        parser.error("Scrollable desktop mode needs Qt. Install the dependencies "
+                     "with `python3 -m pip install -r requirements.txt` "
+                     f"(Qt initialization failed: {exc})")
     explorer = JPEGExplorer(args.image, args.quality, args.sampling)
+    install_scrollable_viewport(explorer.figure)
     explorer.show()
 
 

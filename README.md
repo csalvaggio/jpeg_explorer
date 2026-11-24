@@ -5,8 +5,8 @@ JPEG Explorer is an interactive program that demonstrates JPEG compression, chro
 ## Requirements and running
 
 - Python 3.10 or newer
-- NumPy, Matplotlib, and Pillow (see `requirements.txt`)
-- A Matplotlib interactive backend for the desktop interface
+- NumPy, Matplotlib, Pillow, and PySide6 (see `requirements.txt`)
+- A desktop environment with Qt support (the application uses Matplotlib QtAgg)
 
 From the project directory:
 
@@ -24,6 +24,8 @@ python3 jpeg_explorer.py --image /path/to/image.png --quality 45 --sampling 4:2:
 `--quality` accepts integers from 1 to 100; `--sampling` accepts `4:4:4`, `4:2:2`, or `4:2:0`. The initial settings are quality **75**, sampling **4:4:4**, and an **8×8** analysis block centered in the image. The 4:4:4 default keeps chroma subsampling out of the introductory DCT comparison.
 
 ## Interface
+
+The interface is displayed in a resizable desktop window with a Matplotlib navigation toolbar. On smaller screens, the window can be scrolled without reducing the size of the visualizations.
 
 The top row shows the full **Original** and **JPEG (decoded)** images. Clicking either image selects the corresponding analysis block, provided **Select point on** is enabled. Both images indicate the same selected region.
 
@@ -117,7 +119,7 @@ From the project directory:
 python3 -m unittest discover -s tests -v
 ```
 
-The tests use Matplotlib's noninteractive Agg backend and simulate dialog calls. They do not replace a manual check of the system's native file picker or keyboard focus behavior.
+The automated tests use Matplotlib's noninteractive Agg backend and simulate dialog calls. The desktop window, macOS file picker, and keyboard focus should also be checked interactively on the target computer.
 
 ## License
 
