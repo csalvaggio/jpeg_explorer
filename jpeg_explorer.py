@@ -325,7 +325,7 @@ class JPEGExplorer:
         )
 
     def _create_figure(self) -> None:
-        self.figure = plt.figure(figsize=(17.8, 15.0), facecolor="#f7f8fa")
+        self.figure = plt.figure(figsize=(17.8, 20.0), facecolor="#f7f8fa")
         self.figure.canvas.manager.set_window_title("IMGS.361 — JPEG Explorer")
 
         # The entire input image appears at left and the entire decoded JPEG
@@ -337,7 +337,7 @@ class JPEGExplorer:
         # Selected original/decoded tiles and DCTs remain together below.
         grid = self.figure.add_gridspec(
             6, 12, left=0.042, right=0.958, top=0.952, bottom=0.072,
-            height_ratios=[5.0, 0.92, 1.32, 3.05, 2.30, 3.48],
+            height_ratios=[9.00, 0.92, 1.32, 3.05, 3.30, 5.00],
             hspace=0.40, wspace=0.18,
         )
         self.ax_original = self.figure.add_subplot(grid[0, :6])
